@@ -1,0 +1,45 @@
+{
+  "evaluation": {
+    "source": {
+      "name": "violations",
+      "display": "violations",
+      "aggregation": "AGGREGATION_UNSPECIFIED"
+    },
+    "comparison_operator": "GREATER_THAN_OR_EQUAL",
+    "threshold": {
+      "value": {
+        "double_value": 1.0
+      }
+    },
+    "notification": {
+      "retrigger_seconds": 0,
+      "notify_on_ok": false
+    }
+  },
+  "schedule": {
+    "quartz_cron_schedule": "5 0 1 * * ?",
+    "timezone_id": "America/Sao_Paulo"
+  },
+  "query_lines": [
+    "-- Alert: gold.fact_picklists violations (Integrity and Null SKs)",
+    "WITH",
+    "-- Testa chaves estrangeiras (SKs nulas)",
+    "null_sk AS (",
+    "  SELECT COUNT(*) AS c FROM logiflow.gold.fact_picklists ",
+    "  WHERE fk_empresa_sk IS NULL OR fk_cliente_sk IS NULL OR fk_data_sk IS NULL",
+    "),",
+    "-- Testa integridade e versionamento do hash",
+    "missing_hash AS (",
+    "  SELECT COUNT(*) AS c FROM logiflow.gold.fact_picklists WHERE row_hash IS NULL",
+    "),",
+    "-- Testa SLA inválido (tempos negativos de execução)",
+    "invalid_sla AS (",
+    "  SELECT COUNT(*) AS c FROM logiflow.gold.fact_picklists WHERE sla_segundos < 0",
+    ")",
+    "SELECT",
+    "  (SELECT c FROM null_sk)",
+    "+ (SELECT c FROM missing_hash)",
+    "+ (SELECT c FROM invalid_sla)",
+    "  AS violations;"
+  ]
+}

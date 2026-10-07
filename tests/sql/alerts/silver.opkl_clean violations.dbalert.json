@@ -1,0 +1,43 @@
+{
+  "evaluation": {
+    "source": {
+      "name": "violations",
+      "display": "violations",
+      "aggregation": "AGGREGATION_UNSPECIFIED"
+    },
+    "comparison_operator": "GREATER_THAN_OR_EQUAL",
+    "threshold": {
+      "value": {
+        "double_value": 1.0
+      }
+    },
+    "notification": {
+      "retrigger_seconds": 0,
+      "notify_on_ok": false
+    }
+  },
+  "schedule": {
+    "quartz_cron_schedule": "5 0 1 * * ?",
+    "timezone_id": "America/Sao_Paulo"
+  },
+  "query_lines": [
+    "-- Alert: silver.opkl_clean violations (Idempotency and Duplicates)",
+    "WITH",
+    "duplicate_picklists AS (",
+    "  SELECT COUNT(*) AS c FROM (",
+    "    SELECT pick_list_id FROM logiflow.silver.opkl_clean GROUP BY pick_list_id HAVING COUNT(*) > 1",
+    "  ) x",
+    "),",
+    "missing_hash AS (",
+    "  SELECT COUNT(*) AS c FROM logiflow.silver.opkl_clean WHERE row_hash IS NULL",
+    "),",
+    "invalid_dates AS (",
+    "  SELECT COUNT(*) AS c FROM logiflow.silver.opkl_clean WHERE pick_date IS NULL OR data_pedido IS NULL",
+    ")",
+    "SELECT",
+    "  (SELECT c FROM duplicate_picklists)",
+    "+ (SELECT c FROM missing_hash)",
+    "+ (SELECT c FROM invalid_dates)",
+    "  AS violations;"
+  ]
+}
